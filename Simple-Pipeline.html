@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pipeline</title>
+<style>
+:root{--text:#1f2937;--muted:#6b7280;--line:#e5e7eb;--blue:#2563eb;--col:#ededed}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff;color:var(--text);font-size:14px;display:flex;flex-direction:column;overflow:hidden}
+.chrome{height:34px;background:#f1f1f1;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 14px;flex:none}
+.d{width:12px;height:12px;border-radius:50%;display:inline-block}
+.top{padding:14px 20px 0;flex:none}
+.titlerow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h1{font-size:28px;font-weight:400;margin:0 12px 0 0}
+.grow{flex:1}
+.tabs{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.tab{border:0;background:none;padding:8px 12px;cursor:pointer;color:var(--muted);font:inherit;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--text);border-bottom-color:var(--blue)}
+.tab.dropz{outline:2px dashed var(--blue)}
+.tab.add{border:1px dashed #9ca3af;border-radius:6px;margin:4px 0 4px 6px;padding:5px 10px}
+.toolbar{display:flex;gap:8px;align-items:center;padding:14px 0}
+.toolbar select{width:auto}
+.search{flex:1}
+input,select,textarea{font:inherit;border:1px solid #d1d5db;border-radius:4px;padding:6px 10px;background:#fff;color:var(--text);width:100%}
+.btn{font:inherit;border:1px solid var(--line);background:#fff;color:var(--text);padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.danger{color:#b91c1c}
+.btn.fbtn{color:var(--blue);border-color:var(--blue);border-radius:999px;padding:5px 14px}
+.btn:disabled{opacity:.5;cursor:default}
+main{flex:1;min-height:0;overflow:auto;padding:0 20px 20px;display:flex;gap:10px;align-items:stretch}
+.col{flex:0 0 240px;background:var(--col);border-radius:4px;display:flex;flex-direction:column;min-height:0;max-height:100%}
+.col.over{outline:2px dashed var(--blue);outline-offset:-2px}
+.col.drag{opacity:.4}
+.colh{padding:12px 12px 10px;font-weight:600;font-size:14px;cursor:grab}
+.row1{display:flex;justify-content:space-between;align-items:center}
+.sum{font-size:11px;color:var(--muted);font-weight:400;margin-top:4px}
+.ttl{outline:none;border-radius:4px;padding:0 3px;margin:-1px -3px;cursor:text}
+.ttl:focus{background:#fff;box-shadow:0 0 0 1px var(--blue)}
+.count{color:var(--muted);font-weight:400;font-size:13px}
+.cards{padding:0 8px 8px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;min-height:60px;flex:1}
+.card{position:relative;background:#fff;border:1px solid #e3e3e3;border-radius:4px;padding:10px 12px;cursor:grab;font-size:12px;line-height:1.45}
+.card.drag{opacity:.4}
+.card b{font-size:14px;display:block}
+.card .id{color:var(--muted)}
+.card>.x{position:absolute;top:4px;right:6px;margin:0}
+.av{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:#e5e7eb;color:#555;font-size:9px;font-weight:600;margin-right:6px;vertical-align:middle}
+.av.p{background:#6d28d9;color:#fff}
+.stsel{margin-top:8px;padding:5px 8px;font-size:12px;cursor:pointer}
+.upd{color:var(--muted);font-size:11px;margin-top:6px}
+.muted{color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:12px 0;font-size:12px}
+.addcol{flex:0 0 240px;height:40px;border:1px dashed #9ca3af;background:none;border-radius:6px;color:var(--muted);font:inherit;cursor:pointer;align-self:flex-start}
+.addcol:hover{color:var(--blue);border-color:var(--blue)}
+.x{display:inline-block;margin-left:6px;padding:0 5px;border-radius:4px;color:var(--muted);cursor:pointer;font-weight:400;line-height:1.3}
+.x:hover{background:#fee2e2;color:#b91c1c}
+.overlay{position:fixed;inset:0;background:rgba(17,24,39,.25);display:none;z-index:10}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:100%;background:#fff;border-left:1px solid var(--line);transform:translateX(100%);transition:transform .15s;display:flex;flex-direction:column;z-index:20}
+.drawer.open{transform:none}
+.dh,.df-foot{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dh{border-bottom:1px solid var(--line)}
+.df-foot{border-top:1px solid var(--line);justify-content:flex-end}
+.db{padding:14px 16px;overflow-y:auto;flex:1}
+.db h3{margin:0 0 12px;font-size:16px}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:8px 10px;font-size:13px}
+.kv span:nth-child(odd){color:var(--muted)}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(17,24,39,.25);z-index:30}
+.modal .box{background:#fff;border-radius:8px;width:min(480px,100%);max-height:92vh;overflow-y:auto;border:1px solid var(--line)}
+form{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+form h2{font-size:15px;margin:0}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.err{color:#b91c1c;font-size:12px}
+.tlist{max-height:55vh;overflow-y:auto}
+.titem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+#title{outline:none;border-radius:4px;padding:0 6px;margin-left:-6px;cursor:text;min-width:40px}
+#title:hover{background:#f3f4f6}
+#title:focus{background:#fff;box-shadow:0 0 0 1px var(--blue)}
+.att{margin-top:18px;border-top:1px solid var(--line);padding-top:12px}
+.atth{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.th{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:4px;overflow:hidden;cursor:zoom-in;background:#f3f4f6}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.th .x{position:absolute;top:2px;right:2px;margin:0;background:rgba(255,255,255,.92)}
+</style>
+</head>
+<body>
+<div class="chrome"><span class="d" style="background:#ff5f57"></span><span class="d" style="background:#febc2e"></span><span class="d" style="background:#28c840"></span></div>
+<section class="top">
+  <div class="titlerow">
+    <h1 id="title" contenteditable="true" spellcheck="false" title="Click to rename">Pipeline</h1><div class="grow"></div>
+    <button class="btn" id="empbtn">Employees</button>
+    <button class="btn" id="trashbtn">Trash (0)</button>
+    <button class="btn" id="exportbtn">Export</button>
+    <button class="btn" id="importbtn">Import</button>
+    <button class="btn primary" id="add">Add New</button>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="toolbar">
+    <select id="qf"><option value="all">All fields</option><option value="name">Name</option><option value="phone">Phone</option><option value="service">Service</option><option value="id">Number / source</option></select>
+    <input id="q" class="search" type="search" placeholder="Search by name, phone, or service">
+    <button class="btn fbtn" id="filterbtn">Filter</button>
+    <select id="empf" style="display:none"></select>
+  </div>
+</section>
+<main id="board"></main>
+<div id="ov" class="overlay"></div>
+<aside id="drawer" class="drawer"></aside>
+<input type="file" id="imgin" accept="image/*" multiple hidden>
+<div id="modal" class="modal"><div class="box" id="mbox"></div></div>
+<script>
+const DEF=[
+{id:'lead',name:'Leads',stages:['New','Contacted','Follow-Up','Appointment Scheduled','Won','Lost']},
+{id:'estimate',name:'Estimates',stages:['Draft','Sent','Follow-Up','Approved','Declined']},
+{id:'job',name:'Jobs',stages:['Approved','Unscheduled','Scheduled','In Progress','Completed']}];
+const UNASSIGNED='Unassigned', DEF_EMP=['Jake','Ana','Mia'], EKEY='pipeline-employees-v1';
+const KEY='pipeline-poc-v2', CKEY='pipeline-config-v2', TRKEY='pipeline-trash-v2', TLKEY='pipeline-title-v1';
+const MAXIMG=8, MAXPX=1200;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>'$'+Number(v||0).toLocaleString('en-US');
+const fd=d=>d?new Date(d+'T00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const ago=(d,n)=>{const x=new Date(d+'T00:00');x.setDate(x.getDate()-n);return x.toISOString().slice(0,10)};
+const today=()=>new Date().toISOString().slice(0,10);
+
+function loadTabs(){
+  try{const s=localStorage.getItem(CKEY);if(s)return JSON.parse(s)}catch(e){}
+  const t=JSON.parse(JSON.stringify(DEF));
+  try{const old=JSON.parse(localStorage.getItem('pipeline-stages-v1')||'null');if(old)t.forEach(x=>{if(old[x.id])x.stages=old[x.id]})}catch(e){}
+  return t;
+}
+function saveTabs(){try{localStorage.setItem(CKEY,JSON.stringify(TABS))}catch(e){}}
+let TABS=loadTabs();
+const tabOf=id=>TABS.find(t=>t.id===id);
+const nm=id=>tabOf(id)?.name||'Record';
+const cleanTitle=s=>String(s??'').replace(/\s+/g,' ').trim().slice(0,40).trim();
+let TITLE=(()=>{try{return cleanTitle(localStorage.getItem(TLKEY))||'Pipeline'}catch(e){return 'Pipeline'}})();
+function saveTitle(){try{localStorage.setItem(TLKEY,TITLE)}catch(e){}}
+function showTitle(){$('#title').textContent=TITLE;document.title=TITLE}
+
+// [name, service, source-or-number, value, status, employee, date, notes]
+const PHONE='(012) 345-6789';
+const SEED={
+lead:[
+['Hannah Whitfield','HVAC tune-up','Google',180,'New','Jake','2026-11-20','Prefers morning visits.'],
+['Marcus Delgado','Water heater install','Referral',1450,'New','Ana','2026-11-21','Referred by a past customer. Old unit is leaking.'],
+['Sofia Petrov','Drain cleaning','Website',225,'Contacted','Jake','2026-11-16','Kitchen sink backs up weekly.'],
+['Derek Nakamura','Roof inspection','Yelp',350,'Contacted','Mia','2026-11-14','Wants an inspection before listing the house.'],
+['Keisha Monroe','AC replacement','Google',5200,'Follow-Up','Ana','2026-11-09','Comparing two other quotes.'],
+["Liam O'Connor",'Electrical panel','Referral',2100,'Follow-Up','Mia','2026-11-06','Panel is 30+ years old.'],
+['Fatima Rahman','Duct cleaning','Facebook',480,'Appointment Scheduled','Jake','2026-11-18','Has two dogs. Call before arriving.'],
+['Wyatt Sullivan','Furnace repair','Website',310,'Appointment Scheduled','Ana','2026-11-17','No heat since Sunday.'],
+['Chloe Barnes','Thermostat install','Google',190,'Won','Mia','2026-11-03','Wants a smart thermostat.'],
+['Ethan Kowalski','Plumbing leak','Yelp',260,'Lost','Jake','2026-10-30','Went with another company.']],
+estimate:[
+['Olivia Grant','Full HVAC system','EST-1041',8400,'Draft','Mia','2026-11-22','Two-story home, needs a load calculation.'],
+['Noah Fischer','Panel upgrade','EST-1042',2650,'Draft','Jake','2026-11-22','Upgrade from 100A to 200A.'],
+['Isabel Reyes','Water heater','EST-1038',1600,'Sent','Ana','2026-11-18','Tankless option included.'],
+['Caleb Hughes','Attic insulation','EST-1035',3200,'Sent','Mia','2026-11-16','Blown-in cellulose, about 1,200 sq ft.'],
+['Zara Ahmed','Duct replacement','EST-1030',4700,'Follow-Up','Jake','2026-11-09','Waiting on her spouse to approve.'],
+['Tobias Lindqvist','Sewer line repair','EST-1027',5900,'Follow-Up','Ana','2026-11-05','Camera inspection attached.'],
+['Keisha Monroe','AC replacement','EST-1045',5200,'Approved','Ana','2026-11-12','Chose the mid-tier 16 SEER unit.'],
+['Wyatt Sullivan','Furnace repair','EST-1022',310,'Approved','Jake','2026-11-18','Igniter replacement.'],
+['Derek Nakamura','Roof inspection','EST-1019',350,'Declined','Ana','2026-11-15','Decided to hold off until spring.'],
+['Ethan Kowalski','Plumbing leak','EST-1016',260,'Declined','Mia','2026-11-01','Fixed it himself.']],
+job:[
+['Keisha Monroe','AC replacement','JOB-2204',5200,'Approved','Ana','2026-12-02','Permit submitted.'],
+['Wyatt Sullivan','Furnace repair','JOB-2205',310,'Unscheduled','Jake','2026-12-04','Part on order.'],
+['Isabel Reyes','Water heater','JOB-2206',1600,'Unscheduled','Ana','2026-12-05','Customer is flexible on timing.'],
+['Caleb Hughes','Attic insulation','JOB-2207',3200,'Scheduled','Mia','2026-11-30','Crew of three. Attic access in the hallway.'],
+["Liam O'Connor",'Electrical panel','JOB-2208',2100,'Scheduled','Mia','2026-12-01','Power off for about 4 hours.'],
+['Zara Ahmed','Duct replacement','JOB-2209',4700,'In Progress','Jake','2026-11-23','Day 1 of 2.'],
+['Tobias Lindqvist','Sewer line repair','JOB-2210',5900,'In Progress','Ana','2026-11-22','Excavation finished.'],
+['Sofia Petrov','Drain cleaning','JOB-2211',225,'Completed','Mia','2026-11-18','Cleared the main line.'],
+['Chloe Barnes','Thermostat install','JOB-2212',190,'Completed','Mia','2026-11-10','Customer was shown how to use it.'],
+['Fatima Rahman','Duct cleaning','JOB-2213',480,'Completed','Jake','2026-11-12','Left photos of the cleaned vents.']]
+};
+function seed(){
+  const out=[],addr={},t0=today();let k=0;
+  for(const t in SEED) SEED[t].forEach((r,i)=>{
+    const [name,service,x,value,status,employee,date,notes]=r, lead=t==='lead';
+    if(!addr[name])addr[name]=(107+41*k++)+' Example St';
+    const c=lead?date:ago(date,7);
+    out.push({id:uid(),type:t,name,phone:PHONE,email:name.toLowerCase().replace(/\W+/g,'.')+'@example.com',
+      address:addr[name],service,value,status,employee,date,created:c>t0?t0:c,
+      statusAt:Math.min(Date.parse(date+'T00:00'),Date.now()-(i+1)*5*3600e3),notes:notes||'',
+      source:lead?x:'',number:lead?'':x,images:[]});
+  });
+  return out;
+}
+function load(){try{const s=localStorage.getItem(KEY);if(s)return JSON.parse(s)}catch(e){}return seed()}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(recs));return true}catch(e){return false}}
+
+let recs=load();
+let tab='lead', q='', editId=null, formType=null, drag=null, modalOnDrawer=false;
+
+function rel(ts){const s=Math.max(0,(Date.now()-ts)/1000);if(s<60)return'a few seconds ago';const m=Math.floor(s/60);if(m<60)return m===1?'a minute ago':m+' minutes ago';const h=Math.floor(m/60);if(h<24)return h===1?'an hour ago':h+' hours ago';const d=Math.floor(h/24);if(d<30)return d===1?'a day ago':d+' days ago';const mo=Math.floor(d/30);return mo===1?'a month ago':mo+' months ago'}
+function fieldMatch(r,ql,f){const vals={all:[r.name,r.phone,r.service],name:[r.name],phone:[r.phone],service:[r.service],id:[r.number,r.source]}[f]||[];return vals.some(v=>String(v||'').toLowerCase().includes(ql))}
+const initials=n=>{const w=String(n).split(' ').filter(Boolean);return(w.length>1?w[0][0]+w[w.length-1][0]:String(n).slice(0,2)).toUpperCase()};
+function card(r){
+  const T=tabOf(r.type), un=!r.employee||r.employee==='Unassigned';
+  const idLine=r.type==='lead'?'Lead'+(r.source?' · '+esc(r.source):''):esc(r.number);
+  const opts=T.stages.map(s=>`<option${s===r.status?' selected':''}>${esc(s)}</option>`).join('');
+  return `<article class="card" draggable="true" data-id="${r.id}"><span class="x" data-x="card" title="Delete record">×</span>
+    <div class="id">${idLine}</div>
+    <b>${esc(r.name)}</b>
+    <div class="muted">${esc(r.service)} · ${esc(r.phone)}</div>
+    <div style="margin-top:4px;font-weight:600">${money(r.value)}</div>
+    <div style="margin-top:6px"><span class="av${un?'':' p'}">${un?'U':esc(initials(r.employee))}</span>${un?'Unassigned':esc(r.employee)}</div>
+    <select class="stsel" data-sel="${r.id}">${opts}</select>
+    <div class="upd">Status updated <b>${rel(r.statusAt||Date.parse((r.created||r.date)+'T00:00'))}</b></div></article>`;
+}
+function render(){
+  const T=tabOf(tab);
+  $('#trashbtn').textContent='Trash ('+TRASH.length+')';
+  $('#tabs').innerHTML=TABS.map(t=>`<button class="tab${t.id===tab?' on':''}" draggable="true" data-t="${t.id}" title="Double-click to rename · drop a card here to move it">${esc(t.name)}${TABS.length>1?'<span class="x" data-x="tab" data-v="'+t.id+'" title="Delete tab">×</span>':''}</button>`).join('')+'<button class="tab add" id="newtab">+ Tab</button>';
+  const ql=q.trim().toLowerCase(), qf=$('#qf').value, ef=$('#empf').value;
+  const list=recs.filter(r=>r.type===tab&&(!ql||fieldMatch(r,ql,qf))&&(!ef||r.employee===ef));
+  $('#board').innerHTML=T.stages.map(c=>{
+    const items=list.filter(r=>r.status===c), sum=items.reduce((a,r)=>a+Number(r.value||0),0);
+    return `<section class="col" data-s="${esc(c)}"><div class="colh"><div class="row1"><span class="ttl" contenteditable="true" spellcheck="false" data-old="${esc(c)}">${esc(c)}</span><span class="count">${items.length}<span class="x" data-x="col" data-v="${esc(c)}" title="Delete stage">×</span></span></div><div class="sum">${money(sum)} total</div></div>
+      <div class="cards">${items.map(card).join('')||'<div class="empty">No records</div>'}</div></section>`;
+  }).join('')+'<button class="addcol" id="addcol">+ Add stage</button>';
+}
+
+// Board: cards and columns
+const board=$('#board');
+board.addEventListener('mousedown',e=>{const s=e.target.closest('.col');if(s&&e.target.closest('.colh')&&!e.target.classList.contains('ttl'))s.draggable=true});
+board.addEventListener('mouseup',()=>document.querySelectorAll('.col[draggable=true]').forEach(c=>c.draggable=false));
+board.addEventListener('dragstart',e=>{
+  if(e.target.classList.contains('col')){drag={k:'col',id:e.target.dataset.s};e.target.classList.add('drag');e.dataTransfer.setData('text/plain','col');return}
+  const c=e.target.closest('.card');if(!c)return;
+  drag={k:'card',id:c.dataset.id};c.classList.add('drag');e.dataTransfer.setData('text/plain','card');e.dataTransfer.effectAllowed='move';
+});
+board.addEventListener('dragover',e=>{
+  if(!drag)return;const col=e.target.closest('.col');if(!col)return;
+  e.preventDefault();document.querySelectorAll('.col.over').forEach(x=>x.classList.remove('over'));col.classList.add('over');
+});
+board.addEventListener('drop',e=>{
+  if(!drag)return;const col=e.target.closest('.col');if(!col)return;e.preventDefault();
+  const T=tabOf(tab),dest=col.dataset.s;
+  if(drag.k==='col'){const a=T.stages.indexOf(drag.id),b=T.stages.indexOf(dest);if(a>-1&&b>-1&&a!==b){T.stages.splice(b,0,...T.stages.splice(a,1));saveTabs()}}
+  else{const r=recs.find(x=>x.id===drag.id);if(r&&r.status!==dest){r.status=dest;r.statusAt=Date.now();save()}}
+  drag=null;render();
+});
+board.addEventListener('dragend',()=>{drag=null;render()});
+board.addEventListener('click',e=>{
+  if(e.target.closest('select'))return;
+  const x=e.target.closest('.x');
+  if(x){e.stopPropagation();
+    if(x.dataset.x==='card'){const r=recs.find(z=>z.id===x.closest('.card').dataset.id);askConfirm(`Delete ${r.name}?`,()=>{trashRecs([r]);render()});return}
+    if(x.dataset.x==='col'&&tabOf(tab).stages.length>1){const s=x.dataset.v,n=recs.filter(r=>r.type===tab&&r.status===s).length;
+      askConfirm(`Delete the "${s}" stage${n?' and its '+n+' record'+(n>1?'s':''):''}?`,()=>{const T=tabOf(tab);T.stages=T.stages.filter(z=>z!==s);trashRecs(recs.filter(r=>r.type===tab&&r.status===s));saveTabs();render()})}
+    return}
+  const c=e.target.closest('.card');if(c)openView(c.dataset.id);if(e.target.id==='addcol')addStage()
+});
+board.addEventListener('change',e=>{
+  if(!e.target.matches('.stsel'))return;
+  const r=recs.find(x=>x.id===e.target.dataset.sel);if(!r)return;
+  r.status=e.target.value;r.statusAt=Date.now();save();render();
+});
+board.addEventListener('keydown',e=>{if(e.target.classList.contains('ttl')&&e.key==='Enter'){e.preventDefault();e.target.blur()}});
+board.addEventListener('focusin',e=>{if(e.target.classList.contains('ttl'))e.target.dataset.old=e.target.textContent.trim()});
+board.addEventListener('focusout',e=>{if(e.target.classList.contains('ttl'))renameStage(e.target)});
+function renameStage(el){
+  const T=tabOf(tab),oldName=el.dataset.old,name=el.textContent.trim().replace(/\s+/g,' ');
+  if(!name||(name!==oldName&&T.stages.includes(name))){el.textContent=oldName;return}
+  if(name===oldName)return;
+  T.stages=T.stages.map(s=>s===oldName?name:s);
+  recs.forEach(r=>{if(r.type===tab&&r.status===oldName)r.status=name});
+  save();saveTabs();render();
+}
+function addStage(){
+  const T=tabOf(tab);let n='New stage',i=2;while(T.stages.includes(n))n='New stage '+i++;
+  T.stages.push(n);saveTabs();render();
+  const el=[...document.querySelectorAll('.ttl')].find(x=>x.dataset.old===n);
+  if(el){el.focus();document.getSelection().selectAllChildren(el)}
+}
+
+// Tabs: switch, create, rename, and cross-tab drop
+const tabsEl=$('#tabs');
+tabsEl.addEventListener('click',e=>{
+  const x=e.target.closest('.x');
+  if(x&&TABS.length>1){e.stopPropagation();const t=tabOf(x.dataset.v);const n=recs.filter(r=>r.type===t.id).length;
+    askConfirm(`Delete the "${t.name}" tab${n?' and its '+n+' record'+(n>1?'s':''):''}?`,()=>{TABS=TABS.filter(z=>z!==t);trashRecs(recs.filter(r=>r.type===t.id),t);if(tab===t.id)tab=TABS[0].id;save();saveTabs();render()});return}
+  const b=e.target.closest('[data-t]');if(b){tab=b.dataset.t;render();return}
+  if(e.target.id==='newtab')newTab();
+});
+tabsEl.addEventListener('dblclick',e=>{
+  const b=e.target.closest('[data-t]');if(!b)return;const t=tabOf(b.dataset.t);
+  if(e.target.closest('.x'))return;
+  askText('Rename tab',t.name,v=>{t.name=v;saveTabs();render()});
+});
+function newTab(){
+  askText('New tab name','',v=>{const n=v.trim();
+  const t={id:'tab-'+uid(),name:n.trim(),stages:['New','In Progress','Done']};
+  TABS.push(t);saveTabs();tab=t.id;q='';$('#q').value='';render();});
+}
+tabsEl.addEventListener('dragover',e=>{
+  const b=e.target.closest('[data-t]');if(!drag||drag.k!=='card'||!b)return;
+  e.preventDefault();b.classList.add('dropz');
+});
+tabsEl.addEventListener('dragleave',e=>{const b=e.target.closest('[data-t]');if(b)b.classList.remove('dropz')});
+tabsEl.addEventListener('drop',e=>{
+  const b=e.target.closest('[data-t]');if(!drag||drag.k!=='card'||!b)return;
+  e.preventDefault();
+  const r=recs.find(x=>x.id===drag.id),dest=tabOf(b.dataset.t);
+  if(r&&dest&&r.type!==dest.id){r.type=dest.id;r.status=dest.stages[0];r.statusAt=Date.now();save();tab=dest.id}
+  drag=null;render();
+});
+tabsEl.addEventListener('dragstart',e=>{const b=e.target.closest('[data-t]');if(!b||e.target.closest('.x'))return;drag={k:'tab',id:b.dataset.t};e.dataTransfer.setData('text/plain','tab');e.dataTransfer.effectAllowed='move'});
+tabsEl.addEventListener('dragend',()=>{drag=null;render()});
+tabsEl.addEventListener('dragover',e=>{if(!drag||drag.k!=='tab')return;const b=e.target.closest('[data-t]');if(!b||b.dataset.t===drag.id)return;e.preventDefault();document.querySelectorAll('.tab.dropz').forEach(x=>x.classList.remove('dropz'));b.classList.add('dropz')});
+tabsEl.addEventListener('drop',e=>{if(!drag||drag.k!=='tab')return;const b=e.target.closest('[data-t]');if(!b)return;e.preventDefault();const a=TABS.findIndex(t=>t.id===drag.id),c=TABS.findIndex(t=>t.id===b.dataset.t);if(a>-1&&c>-1&&a!==c){TABS.splice(c,0,...TABS.splice(a,1));saveTabs()}drag=null;render()});
+
+// Detail drawer
+const imgsOf=r=>Array.isArray(r.images)?r.images:[];
+const okImg=m=>!!m&&typeof m.data==='string'&&/^data:image\//.test(m.data);
+function attHtml(r){
+  const imgs=imgsOf(r),n=imgs.length;
+  return `<div class="att"><div class="atth"><b>Attachments${n?' ('+n+')':''}</b><button class="btn" data-a="addimg"${n>=MAXIMG?' disabled':''}>Add image</button></div>
+    ${n?`<div class="agrid">${imgs.map((m,i)=>okImg(m)?`<div class="th" data-img="${i}" title="${esc(m.name)}"><img src="${esc(m.data)}" alt="${esc(m.name)}"><span class="x" data-rmimg="${i}" title="Remove image">×</span></div>`:'').join('')}</div>`:'<div class="muted" style="font-size:12px">No images attached.</div>'}
+    <div class="err" id="imgerr" style="margin-top:8px"></div></div>`;
+}
+function shrink(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file),im=new Image();
+    im.onload=()=>{
+      URL.revokeObjectURL(url);
+      if(!im.naturalWidth||!im.naturalHeight)return rej(new Error('empty'));
+      const sc=Math.min(1,MAXPX/Math.max(im.naturalWidth,im.naturalHeight));
+      const w=Math.max(1,Math.round(im.naturalWidth*sc)),h=Math.max(1,Math.round(im.naturalHeight*sc));
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,w,h);g.drawImage(im,0,0,w,h);
+      try{res(c.toDataURL('image/jpeg',.8))}catch(e){rej(e)}
+    };
+    im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('unreadable'))};
+    im.src=url;
+  });
+}
+async function addImages(id,files){
+  const r=recs.find(x=>x.id===id);if(!r)return;
+  const before=imgsOf(r).slice(),added=[];let err='';
+  for(const f of files){
+    if(before.length+added.length>=MAXIMG){err=`Limit of ${MAXIMG} images per record.`;break}
+    if(!/^image\//.test(f.type)){err='Only image files can be attached.';continue}
+    try{added.push({id:uid(),name:f.name||'image',data:await shrink(f)})}
+    catch(e){err=`Could not read "${f.name}" as an image.`}
+  }
+  if(added.length&&recs.includes(r)){
+    r.images=before.concat(added);
+    if(!save()){r.images=before;added.length=0;err='Not enough browser storage for that image. Remove an attachment or try a smaller image.'}
+  }
+  const d=$('#drawer');
+  if(d.classList.contains('open')&&d.dataset.id===id){
+    if(added.length)openView(id);
+    const el=$('#imgerr');if(el)el.textContent=err;
+  }
+}
+function viewImage(id,i){
+  const r=recs.find(x=>x.id===id),m=r&&imgsOf(r)[i];if(!okImg(m))return;
+  $('#mbox').innerHTML=`<div style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.name)}</b><button class="btn" id="lclose">Close</button></div><img src="${esc(m.data)}" alt="${esc(m.name)}" style="max-width:100%;max-height:70vh;display:block;margin:0 auto;border-radius:4px"></div>`;
+  $('#modal').style.display='flex';modalOnDrawer=true;
+  $('#lclose').onclick=closeModal;
+}
+function removeImage(id,i){
+  const r=recs.find(x=>x.id===id),m=r&&imgsOf(r)[i];if(!m)return;
+  askConfirm(`Remove ${m.name||'this image'}?`,()=>{const j=imgsOf(r).indexOf(m);if(j>-1){r.images.splice(j,1);save()}openView(id)},'Remove');
+  modalOnDrawer=true;$('#no').onclick=closeModal;
+}
+$('#imgin').onchange=e=>{const id=$('#drawer').dataset.id,files=[...e.target.files];e.target.value='';if(files.length)addImages(id,files)};
+function openView(id){
+  const r=recs.find(x=>x.id===id);if(!r)return;
+  const rows=[['Phone',r.phone],['Email',r.email],['Address',r.address],['Service',r.service],['Value',money(r.value)],['Status',r.status],['Assigned',r.employee],['Date created',fd(r.created)]];
+  if(r.type!=='lead')rows.push([r.type==='estimate'?'Date sent':'Scheduled',fd(r.date)]);
+  rows.push([r.type==='lead'?'Lead source':nm(r.type)+' #',r.type==='lead'?r.source:r.number],['Notes',r.notes||'—']);
+  const d=$('#drawer');d.dataset.id=id;
+  d.innerHTML=`<div class="dh"><b>${esc(nm(r.type))} details</b><button class="btn" data-a="close">Close</button></div>
+    <div class="db"><h3>${esc(r.name)}</h3><div class="kv">${rows.map(([k,v])=>`<span>${k}</span><span>${esc(v)}</span>`).join('')}</div>${attHtml(r)}</div>
+    <div class="df-foot"><button class="btn danger" data-a="del">Delete</button><button class="btn primary" data-a="edit">Edit</button></div>`;
+  d.classList.add('open');$('#ov').style.display='block';
+}
+$('#drawer').addEventListener('click',e=>{
+  const id=$('#drawer').dataset.id,a=e.target.dataset.a;
+  const rmEl=e.target.closest('[data-rmimg]'),thEl=e.target.closest('[data-img]');
+  if(rmEl){removeImage(id,+rmEl.dataset.rmimg);return}
+  if(thEl){viewImage(id,+thEl.dataset.img);return}
+  if(a==='addimg'){$('#imgin').click();return}
+  if(a==='close')closeAll();
+  if(a==='edit')openForm(recs.find(x=>x.id===id));
+  if(a==='del'){const r=recs.find(x=>x.id===id);askConfirm(`Delete ${r.name}?`,()=>{trashRecs(recs.filter(x=>x.id===id));closeAll();render()})}
+});
+
+// Add / edit modal
+function E(k){return `<span class="err" data-e="${k}"></span>`}
+function openForm(r){
+  editId=r?r.id:null;formType=r?r.type:tab;
+  const t=formType,T=tabOf(t),lead=t==='lead';
+  const v=r||{name:'',phone:'',email:'',address:'',service:'',value:'',status:T.stages[0],employee:UNASSIGNED,date:today(),notes:'',source:'',number:''};
+  if(!lead&&!v.number)v.number=(t==='estimate'?'EST-':t==='job'?'JOB-':'')+(3000+recs.length);
+  const dateLbl={lead:'Date created',estimate:'Date sent',job:'Scheduled date'}[t]||'Date';
+  const extra=lead?`<label>Lead source<input name="source"></label>`:`<label>${esc(nm(t))} #<input name="number"></label>`;
+  $('#mbox').innerHTML=`<form id="f" novalidate>
+    <h2>${r?'Edit':'New'} ${esc(nm(t).replace(/s$/,'').toLowerCase())}</h2>
+    <label>Customer name<input name="name">${E('name')}</label>
+    <div class="row"><label>Phone<input name="phone">${E('phone')}</label><label>Email<input name="email" type="email"></label></div>
+    <label>Address<input name="address"></label>
+    <label>Service requested<input name="service">${E('service')}</label>
+    <div class="row">
+      <label>Value ($)<input name="value" type="number" min="0" step="1">${E('value')}</label>
+      <label>Status<select name="status">${T.stages.map(s=>`<option>${esc(s)}</option>`).join('')}</select></label>
+    </div>
+    <div class="row">
+      <label>Assigned employee<select name="employee">${[UNASSIGNED,...EMPLOYEES].map(s=>`<option>${esc(s)}</option>`).join('')}</select></label>
+      <label>${dateLbl}<input name="date" type="date"></label>
+    </div>
+    ${extra}
+    <label>Internal notes<textarea name="notes" rows="3"></textarea></label>
+    <div class="df-foot" style="padding:6px 0 0;border:0"><button type="button" class="btn" data-c>Cancel</button><button class="btn primary" type="submit">Save</button></div>
+  </form>`;
+  const f=$('#f');
+  ['name','phone','email','address','service','value','status','employee','date','notes','source','number'].forEach(k=>{if(f.elements[k])f.elements[k].value=v[k]??''});
+  $('#modal').style.display='flex';f.elements.name.focus();
+}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal'||e.target.hasAttribute('data-c'))closeTop()});
+$('#mbox').addEventListener('submit',e=>{
+  if(e.target.id!=='f')return;
+  e.preventDefault();
+  const f=e.target,d=Object.fromEntries(new FormData(f)),errs={};
+  if(!d.name.trim())errs.name='Customer name is required.';
+  if(d.phone.replace(/\D/g,'').length<7)errs.phone='Enter a valid phone number.';
+  if(!d.service.trim())errs.service='Service requested is required.';
+  if(d.value===''||Number(d.value)<0)errs.value='Enter a value of 0 or more.';
+  f.querySelectorAll('.err').forEach(x=>x.textContent=errs[x.dataset.e]||'');
+  if(Object.keys(errs).length)return;
+  const data={name:d.name.trim(),phone:d.phone.trim(),email:(d.email||'').trim(),address:(d.address||'').trim(),service:d.service.trim(),
+    value:Number(d.value),status:d.status,employee:d.employee,date:d.date||today(),notes:(d.notes||'').trim(),
+    source:(d.source||'').trim(),number:(d.number||'').trim()};
+  if(editId)Object.assign(recs.find(x=>x.id===editId),data);
+  else recs.push({...data,id:uid(),type:formType,created:data.date});
+  save();closeAll();render();
+});
+
+function askConfirm(msg,yes,label='Delete'){
+  $('#mbox').innerHTML=`<div style="padding:16px"><h2 style="font-size:15px;margin:0 0 8px">Are you sure?</h2><p style="margin:0 0 16px;color:var(--muted)">${esc(msg)} This cannot be undone.</p><div class="df-foot" style="padding:0;border:0"><button class="btn" id="no">Cancel</button><button class="btn danger" id="yes">${label}</button></div></div>`;
+  $('#modal').style.display='flex';
+  $('#no').onclick=closeAll;
+  $('#yes').onclick=()=>{closeAll();yes()};
+}
+function askText(title,val,ok){
+  $('#mbox').innerHTML=`<form id="ask" style="padding:16px"><h2 style="font-size:15px;margin:0 0 10px">${esc(title)}</h2><input id="askin" value="${esc(val)}" maxlength="60"><div class="df-foot" style="padding:12px 0 0;border:0"><button type="button" class="btn" id="no">Cancel</button><button class="btn primary" type="submit">Save</button></div></form>`;
+  $('#modal').style.display='flex';
+  const i=$('#askin');i.focus();i.select();
+  $('#no').onclick=closeAll;
+  $('#ask').onsubmit=e=>{e.preventDefault();const v=i.value.trim();if(v){closeAll();ok(v)}};
+}
+let TRASH=loadTrash();
+function loadTrash(){try{return JSON.parse(localStorage.getItem(TRKEY)||'[]')}catch(e){return []}}
+function saveTrash(){try{localStorage.setItem(TRKEY,JSON.stringify(TRASH))}catch(e){}}
+
+// Employees: create custom, remove (their records become Unassigned)
+function cleanName(s){return String(s??'').replace(/\s+/g,' ').trim().slice(0,40).trim()}
+function sameName(a,b){return a.toLowerCase()===b.toLowerCase()}
+function normEmps(list){
+  const out=[];
+  for(const x of list||[]){if(typeof x!=='string')continue;const n=cleanName(x);
+    if(n&&!sameName(n,UNASSIGNED)&&!out.some(o=>sameName(o,n)))out.push(n)}
+  return out;
+}
+function deriveEmps(){return normEmps([...recs.map(r=>r&&r.employee),...TRASH.map(e=>e&&e.rec&&e.rec.employee)])}
+function loadEmps(){
+  let base=null;
+  try{const s=JSON.parse(localStorage.getItem(EKEY)||'null');if(Array.isArray(s))base=s}catch(e){}
+  // Union with names already on records so no record can ever reference an unknown employee
+  return normEmps([...(base||DEF_EMP),...deriveEmps()]);
+}
+function saveEmps(){try{localStorage.setItem(EKEY,JSON.stringify(EMPLOYEES))}catch(e){}}
+let EMPLOYEES=loadEmps();
+function refreshEmpFilter(){
+  const s=$('#empf'),cur=s.value;
+  s.innerHTML='<option value="">All employees</option>'+[UNASSIGNED,...EMPLOYEES].map(e=>`<option value="${esc(e)}">${esc(e)}</option>`).join('');
+  s.value=(cur===UNASSIGNED||EMPLOYEES.includes(cur))?cur:'';
+}
+function addEmployee(raw){
+  const n=cleanName(raw);
+  if(!n)return 'Enter a name.';
+  if(sameName(n,UNASSIGNED))return '"Unassigned" is reserved.';
+  if(EMPLOYEES.some(x=>sameName(x,n)))return 'That employee already exists.';
+  EMPLOYEES.push(n);saveEmps();refreshEmpFilter();
+  return '';
+}
+function removeEmployee(n){
+  const i=EMPLOYEES.indexOf(n);if(i<0)return;
+  EMPLOYEES.splice(i,1);
+  recs.forEach(r=>{if(r.employee===n)r.employee=UNASSIGNED});
+  TRASH.forEach(e=>{if(e&&e.rec&&e.rec.employee===n)e.rec.employee=UNASSIGNED});
+  saveEmps();save();saveTrash();refreshEmpFilter();render();
+}
+function openEmployees(){
+  const cnt=n=>recs.filter(r=>r.employee===n).length;
+  $('#mbox').innerHTML=`<div style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>Employees (${EMPLOYEES.length})</b><button class="btn" id="eclose">Close</button></div>
+    <div class="tlist">${EMPLOYEES.length?EMPLOYEES.map((n,i)=>`<div class="titem"><div><b>${esc(n)}</b><div class="muted">${cnt(n)} active record${cnt(n)===1?'':'s'}</div></div><button class="btn danger" data-rm="${i}">Remove</button></div>`).join(''):'<div class="empty">No employees yet</div>'}</div>
+    <form id="eform" novalidate style="padding:12px 0 0;flex-direction:row;gap:8px"><input id="ein" maxlength="40" placeholder="New employee name" autocomplete="off"><button class="btn primary" type="submit">Add</button></form>
+    <div class="err" id="eerr" style="margin-top:6px"></div></div>`;
+  $('#modal').style.display='flex';
+  $('#eclose').onclick=closeAll;
+  $('#eform').onsubmit=e=>{e.preventDefault();const err=addEmployee($('#ein').value);
+    if(err){$('#eerr').textContent=err;$('#ein').focus();return}
+    openEmployees();
+  };
+  $('#mbox').querySelectorAll('[data-rm]').forEach(b=>b.onclick=()=>{
+    const n=EMPLOYEES[+b.dataset.rm];if(n===undefined)return;const c=cnt(n);
+    askConfirm(`Remove ${n}?`+(c?` Their ${c} active record${c>1?'s':''} will become Unassigned.`:''),()=>{removeEmployee(n);openEmployees()},'Remove');
+    $('#no').onclick=openEmployees;
+  });
+  $('#ein').focus();
+}
+function trashRecs(list,tabSnap){
+  const ids=new Set(list.map(r=>r.id));
+  recs=recs.filter(r=>!ids.has(r.id));
+  list.forEach(r=>TRASH.push({rec:r,tab:tabSnap?JSON.parse(JSON.stringify(tabSnap)):null,deletedAt:Date.now()}));
+  save();saveTrash();
+}
+function openTrash(){
+  $('#mbox').innerHTML=`<div style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>Trash (${TRASH.length})</b><button class="btn" id="tclose">Close</button></div>
+    <div class="tlist">${TRASH.length?TRASH.map((e,i)=>`<div class="titem"><div><b>${esc(e.rec.name)}</b><div class="muted">${esc(e.rec.service)} · ${esc(e.tab?e.tab.name:nm(e.rec.type))}</div></div><button class="btn" data-restore="${i}">Restore</button></div>`).join(''):'<div class="empty">Trash is empty</div>'}</div>
+    <div class="df-foot" style="padding:12px 0 0;border:0"><button class="btn danger" id="tempty" ${TRASH.length?'':'disabled'}>Empty Trash</button></div></div>`;
+  $('#modal').style.display='flex';
+  $('#tclose').onclick=closeAll;
+  $('#tempty').onclick=emptyTrash;
+  $('#mbox').querySelectorAll('[data-restore]').forEach(b=>b.onclick=()=>restore(+b.dataset.restore));
+}
+function restore(i){
+  const e=TRASH[i];TRASH.splice(i,1);
+  let T=tabOf(e.rec.type);
+  if(!T&&e.tab){T=JSON.parse(JSON.stringify(e.tab));TABS.push(T)}
+  if(!T){T=TABS[0];e.rec.type=T.id}
+  if(!T.stages.includes(e.rec.status))T.stages.push(e.rec.status);
+  recs.push(e.rec);
+  saveTabs();save();saveTrash();openTrash();render();
+}
+function emptyTrash(){
+  if(!TRASH.length)return;
+  askConfirm(`Permanently delete ${TRASH.length} item${TRASH.length>1?'s':''} in the trash?`,()=>{TRASH=[];saveTrash();render();openTrash()});
+}
+function openExport(){
+  const data=JSON.stringify({pipeline:'v2',title:TITLE,tabs:TABS,records:recs,trash:TRASH,employees:EMPLOYEES},null,2);
+  $('#mbox').innerHTML=`<div style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>Export</b><button class="btn" id="xclose">Close</button></div>
+    <p class="muted" style="margin:0 0 8px">Click "Select all", then copy the text (Ctrl/Cmd+C) and save it somewhere safe.</p>
+    <textarea id="xta" rows="14" readonly style="font-family:monospace;font-size:11px">${esc(data)}</textarea>
+    <div class="df-foot" style="padding:12px 0 0;border:0"><button class="btn primary" id="xsel">Select all</button></div></div>`;
+  $('#modal').style.display='flex';
+  $('#xclose').onclick=closeAll;
+  $('#xsel').onclick=()=>{const t=$('#xta');t.focus();t.select()};
+}
+function openImport(){
+  $('#mbox').innerHTML=`<div style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>Import</b><button class="btn" id="iclose">Close</button></div>
+    <p class="muted" style="margin:0 0 8px">Paste previously exported text below. This replaces all current tabs, records, and trash.</p>
+    <textarea id="ita" rows="12" style="font-family:monospace;font-size:11px"></textarea>
+    <div class="err" id="ierr"></div>
+    <div class="df-foot" style="padding:12px 0 0;border:0"><button class="btn primary" id="idoit">Import</button></div></div>`;
+  $('#modal').style.display='flex';
+  $('#iclose').onclick=closeAll;
+  $('#idoit').onclick=()=>{
+    let d=null;try{d=JSON.parse($('#ita').value)}catch(e){}
+    if(!d||!Array.isArray(d.tabs)||!d.tabs.length||!Array.isArray(d.records)){$('#ierr').textContent='That is not valid Pipeline export text.';return}
+    askConfirm('Replace all current tabs, records, and trash with this import?',()=>{
+      TABS=d.tabs;recs=d.records;TRASH=Array.isArray(d.trash)?d.trash:[];
+      EMPLOYEES=normEmps([...(Array.isArray(d.employees)?d.employees:[]),...deriveEmps()]);saveEmps();refreshEmpFilter();
+      if(typeof d.title==='string'&&cleanTitle(d.title)){TITLE=cleanTitle(d.title);saveTitle();showTitle()}
+      save();saveTabs();saveTrash();tab=TABS[0].id;render();
+    },'Import');
+  };
+}
+function closeModal(){modalOnDrawer=false;$('#modal').style.display='none'}
+function closeTop(){modalOnDrawer?closeModal():closeAll()}
+function closeAll(){modalOnDrawer=false;$('#drawer').classList.remove('open');$('#ov').style.display='none';$('#modal').style.display='none'}
+$('#q').oninput=e=>{q=e.target.value;render()};
+$('#qf').onchange=()=>render();
+refreshEmpFilter();
+$('#empf').onchange=()=>render();
+$('#filterbtn').onclick=()=>{const s=$('#empf');const hide=s.style.display!=='none';if(hide)s.value='';s.style.display=hide?'none':'';render()};
+$('#add').onclick=()=>openForm(null);
+$('#empbtn').onclick=()=>openEmployees();
+$('#trashbtn').onclick=openTrash;
+$('#exportbtn').onclick=openExport;
+$('#importbtn').onclick=openImport;
+$('#ov').onclick=closeAll;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeTop()});
+
+const titleEl=$('#title');
+titleEl.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();titleEl.blur()}
+  else if(e.key==='Escape'){e.stopPropagation();titleEl.textContent=TITLE;titleEl.blur()}
+});
+titleEl.addEventListener('blur',()=>{const v=cleanTitle(titleEl.textContent);if(v&&v!==TITLE){TITLE=v;saveTitle()}showTitle()});
+showTitle();
+render();
+</script>
+</body>
+</html>
